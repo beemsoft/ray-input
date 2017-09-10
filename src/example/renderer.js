@@ -83,16 +83,17 @@ export default class MenuRenderer {
     scene.add(camera);
 
     let renderer = new THREE.WebGLRenderer({ antialias: true });
+    console.log('sizing');
+    console.log('window.devicePixelRatio: ' + window.devicePixelRatio);
+    console.log('window.innerWidth: ' + window.innerWidth);
+    console.log('window.innerHeight: ' + window.innerHeight);
     renderer.setClearColor( scene.fog.color );
-    // renderer.setPixelRatio( window.devicePixelRatio )
     renderer.setSize(window.innerWidth, window.innerHeight);
     // renderer.setSize( window.innerWidth, window.innerHeight );
     // container.appendChild( renderer.domElement );
 
-    // renderer.vr.enabled = true;
-
-    let effect = new THREE.VREffect(renderer);
-    let controls = new THREE.VRControls(camera);
+    var effect = new THREE.VREffect(renderer);
+    var controls = new THREE.VRControls(camera);
     controls.standing = true;
 
     let manager = new WebVRManager(renderer, effect);
@@ -205,19 +206,23 @@ export default class MenuRenderer {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    console.log('Resizing');
+    console.log('window.devicePixelRatio: ' + window.devicePixelRatio);
+    console.log('window.innerWidth: ' + window.innerWidth);
+    console.log('window.innerHeight: ' + window.innerHeight);
+    var DPR = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
+    var WW = window.innerWidth;
+    var HH = window.innerHeight;
+    this.renderer.setSize( WW, HH );
+    this.renderer.setViewport( 0, 0, WW*DPR, HH*DPR );
+    this.renderer.setPixelRatio(window.devicePixelRatio ? window.devicePixelRatio : 1);
     this.rayInput.setSize(this.renderer.getSize());
   }
-
-  // TODO: hoe om te gaan met ray move?
-  // Eerst click marken en dan rotate met controller pad?, bewegen met ray move?
-  // Of: click marken en dan draggen met ray move?
-  //  --> ray endpoint verschuiven naar reticle.position
 
   handleRayDown_(opt_mesh) {
     this.setAction_(opt_mesh, true);
 
     let pos = this.rayInput.renderer.reticle.position;
-    // console.log('Test: ' + JSON.stringify(this.rayInput.renderer.reticle.position));
     if(pos){
       this.constraintDown = true;
       // Set marker on contact point
