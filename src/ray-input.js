@@ -37,6 +37,7 @@ export default class RayInput extends EventEmitter {
     this.controller.on('rayup', this.onRayUp_.bind(this));
     this.controller.on('raycancel', this.onRayCancel_.bind(this));
     this.controller.on('pointermove', this.onPointerMove_.bind(this));
+    this.controller.on('raydrag', this.onRayDrag_.bind(this));
     this.renderer.on('rayover', (mesh) => { this.emit('rayover', mesh) });
     this.renderer.on('rayout', (mesh) => { this.emit('rayout', mesh) });
 
@@ -201,6 +202,10 @@ export default class RayInput extends EventEmitter {
     this.emit('raydown', mesh);
 
     this.renderer.setActive(true);
+  }
+
+  onRayDrag_() {
+    this.emit('raydrag');
   }
 
   onRayUp_(e) {

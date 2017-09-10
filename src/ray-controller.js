@@ -24,12 +24,9 @@ const DRAG_DISTANCE_PX = 10;
  * touch, etc), interfaces with gamepad API.
  *
  * Emits events:
- *    action: Input is activated (mousedown, touchstart, daydream click, vive
- *    trigger).
- *    release: Input is deactivated (mouseup, touchend, daydream release, vive
- *    release).
- *    cancel: Input is canceled (eg. we scrolled instead of tapping on
- *    mobile/desktop).
+ *    action: Input is activated (mousedown, touchstart, daydream click, vive trigger).
+ *    release: Input is deactivated (mouseup, touchend, daydream release, vive release).
+ *    cancel: Input is canceled (eg. we scrolled instead of tapping on mobile/desktop).
  *    pointermove(2D position): The pointer is moved (mouse or touch).
  */
 export default class RayController extends EventEmitter {
@@ -148,12 +145,18 @@ export default class RayController extends EventEmitter {
       // pressed action.
       let isGamepadPressed = this.getGamepadButtonPressed_();
       if (isGamepadPressed && !this.wasGamepadPressed) {
+        this.isDragging = true;
         this.emit('raydown');
       }
       if (!isGamepadPressed && this.wasGamepadPressed) {
+        this.isDragging = false;
         this.emit('rayup');
       }
       this.wasGamepadPressed = isGamepadPressed;
+
+      if (this.isDragging) {
+        this.emit('raydrag');
+      }
     }
   }
 
