@@ -14,11 +14,8 @@
  */
 
 import WebVRManager from 'webvr-boilerplate'
-import WebVRPolyfill from 'webvr-polyfill'
 import RayInput from '../ray-input'
 
-const WIDTH = 1;
-const HEIGHT = 1;
 const DEFAULT_COLOR = new THREE.Color(0x00FF00);
 const HIGHLIGHT_COLOR = new THREE.Color(0x1E90FF);
 const ACTIVE_COLOR = new THREE.Color(0xFF3333);
@@ -29,15 +26,19 @@ const ACTIVE_COLOR = new THREE.Color(0xFF3333);
 export default class MenuRenderer {
 
   constructor() {
-    let world, projector, boxShape, boxBody;
+    let world;
     const dt = 1 / 60;
     let constraintDown = false;
-    let jointBody, constrainedBody, mouseConstraint;
-    const N = 1;
+    let jointBody, constrainedBody, pointerConstraint;
     let clickMarker = false;
     let geometry, material, mesh;
     // To be synced
     let meshes = [], bodies = [];
+
+    let axes = [];
+    axes[ 0 ] = {
+      value: [ 0, 0 ]
+    };
 
     // Setup our world
     world = new CANNON.World();
@@ -46,17 +47,6 @@ export default class MenuRenderer {
 
     world.gravity.set(0,-4,0);
     world.broadphase = new CANNON.NaiveBroadphase();
-
-    // Create boxes
-    const mass = 5, radius = 1.3;
-    boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
-    for(let i=0; i<N; i++){
-      boxBody = new CANNON.Body({ mass: mass });
-      boxBody.addShape(boxShape);
-      boxBody.position.set(-7,5,0);
-      world.addBody(boxBody);
-      bodies.push(boxBody);
-    }
 
     // Create a plane
     let groundShape = new CANNON.Plane();
@@ -73,8 +63,6 @@ export default class MenuRenderer {
     jointBody.collisionFilterMask = 0;
     world.addBody(jointBody);
 
-    // projector = new THREE.Projector();
-
     let scene = new THREE.Scene();
     scene.fog = new THREE.Fog( 0x000000, 500, 10000 );
 
@@ -89,11 +77,12 @@ export default class MenuRenderer {
     console.log('window.innerHeight: ' + window.innerHeight);
     renderer.setClearColor( scene.fog.color );
     renderer.setSize(window.innerWidth, window.innerHeight);
-    // renderer.setSize( window.innerWidth, window.innerHeight );
-    // container.appendChild( renderer.domElement );
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
+    renderer.shadowMapEnabled = true;
 
-    var effect = new THREE.VREffect(renderer);
-    var controls = new THREE.VRControls(camera);
+    let effect = new THREE.VREffect(renderer);
+    let controls = new THREE.VRControls(camera);
     controls.standing = true;
 
     let manager = new WebVRManager(renderer, effect);
@@ -126,11 +115,12 @@ export default class MenuRenderer {
     this.clickMarker = clickMarker;
     this.constraintDown = constraintDown;
     this.constrainedBody = constrainedBody;
-    this.mouseConstraint = mouseConstraint;
+    this.pointerConstraint = pointerConstraint;
     this.jointBody = jointBody;
+    this.axes = axes;
 
     // lights
-    let light, materials;
+    let light;
     scene.add( new THREE.AmbientLight( 0x666666 ) );
 
     light = new THREE.DirectionalLight( 0xffffff, 1.75 );
@@ -139,19 +129,14 @@ export default class MenuRenderer {
     light.position.set( d, d, d );
 
     light.castShadow = true;
-    //light.shadowCameraVisible = true;
-
-    light.shadowMapWidth = 1024;
-    light.shadowMapHeight = 1024;
-
-    light.shadowCameraLeft = -d;
-    light.shadowCameraRight = d;
-    light.shadowCameraTop = d;
-    light.shadowCameraBottom = -d;
-
-    light.shadowCameraFar = 3*d;
-    light.shadowCameraNear = d;
-    light.shadowDarkness = 0.5;
+    light.shadow.mapSize.width= 1024;
+    light.shadow.mapSize.width = 1024;
+    light.shadow.camera.left = -d;
+    light.shadow.cameraright = d;
+    light.shadow.camera.top = d;
+    light.shadow.camera.bottom = -d;
+    light.shadow.camera.far = 3*d;
+    light.shadow.camera.near = d;
 
     scene.add( light );
 
@@ -159,33 +144,41 @@ export default class MenuRenderer {
     geometry = new THREE.PlaneGeometry( 100, 100, 1, 1 );
     //geometry.applyMatrix( new THREE.Matrix4().makeRotationX( -Math.PI / 2 ) );
     material = new THREE.MeshLambertMaterial( { color: 0x777777 } );
-    let markerMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
-    this.markerMaterial = markerMaterial;
+    this.markerMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
     //THREE.ColorUtils.adjustHSV( material.color, 0, 0, 0.9 );
     mesh = new THREE.Mesh( geometry, material );
     mesh.castShadow = true;
     mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI / 2);
     mesh.receiveShadow = true;
-    mesh.position.y = -0.1;
+    // mesh.position.y = -0.1;
     scene.add(mesh);
 
     // cubes
-    var cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 10, 10 );
-    var cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x29ad83 } );
-    var cubeMesh, sphereMesh;
-    for(var i=0; i<N; i++){
+    let cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 10, 10 );
+    let cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x29ad83 } );
+    let cubeMesh;
+    for(let i=0; i<1; i++){
       cubeMesh = new THREE.Mesh(cubeGeo, cubeMaterial);
       cubeMesh.castShadow = true;
       this.meshes.push(cubeMesh);
       this.scene.add(cubeMesh);
       rayInput.add(cubeMesh);
     }
-
-    // Add a floor.
-    // var floor = this.createFloor_();
-    // this.scene.add(floor);
   }
-//
+
+  addCube() {
+    let boxShape, boxBody;
+    const mass = 5;
+    boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
+    for(let i=0; i<1; i++){
+      boxBody = new CANNON.Body({ mass: mass });
+      boxBody.addShape(boxShape);
+      boxBody.position.set(0,7,-5);
+      this.world.addBody(boxBody);
+      this.bodies.push(boxBody);
+    }
+  }
+
   updatePhysics() {
     this.world.step(this.dt);
     for (let i = 0; i !== this.meshes.length; i++) {
@@ -194,18 +187,74 @@ export default class MenuRenderer {
     }
   }
 
-
   render() {
     this.controls.update();
     this.rayInput.update();
+
+    if (this.constraintDown) {
+      //  Did any axes (assuming a 2D trackpad) values change?
+
+      let gamepad = this.getVRGamepad();
+      if (gamepad != null) {
+        if (gamepad.axes[0] && gamepad.axes[1]) {
+
+
+          let axesVal = this.axes[0].value;
+          let axisX = gamepad.axes[0];
+          let axisY = gamepad.axes[1];
+
+          // only apply filter if both axes are below threshold
+          let filteredX = this.filterAxis(axisX);
+          let filteredY = this.filterAxis(axisY);
+          if (!filteredX && !filteredY) {
+            axisX = filteredX;
+            axisY = filteredY;
+          }
+
+          if (axesVal[0] !== axisX || axesVal[1] !== axisY) {
+            axesVal[0] = axisX;
+            axesVal[1] = axisY;
+            console.log('axes changed', axesVal);
+            // controller.dispatchEvent({ type: 'axes ' + i + ' changed', axes: axesVal });
+          }
+        }
+      }
+    }
+
     this.updatePhysics();
     this.effect.render(this.scene, this.camera);
+  }
+
+  /**
+   * Gets the first VR-enabled gamepad.
+   */
+  getVRGamepad() {
+    // If there's no gamepad API, there's no gamepad.
+    if (!navigator.getGamepads) {
+      return null;
+    }
+
+    var gamepads = navigator.getGamepads();
+    for (var i = 0; i < gamepads.length; ++i) {
+      var gamepad = gamepads[i];
+
+      // The array may contain undefined gamepads, so check for that as well as
+      // a non-null pose.
+      if (gamepad && gamepad.pose) {
+        return gamepad;
+      }
+    }
+    return null;
+  }
+
+  filterAxis( v ) {
+    this.axisThreshold = 0.2;
+    return ( Math.abs( v ) > this.axisThreshold ) ? v : 0;
   }
 
   resize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
     console.log('Resizing');
     console.log('window.devicePixelRatio: ' + window.devicePixelRatio);
     console.log('window.innerWidth: ' + window.innerWidth);
@@ -233,14 +282,14 @@ export default class MenuRenderer {
 
       let idx = this.meshes.indexOf(opt_mesh);
       if(idx !== -1){
-        this.addMouseConstraint(pos.x,pos.y,pos.z,this.bodies[idx]);
+        this.addPointerConstraint(pos.x,pos.y,pos.z,this.bodies[idx]);
       }
     }
   }
 
   handleRayDrag_(opt_mesh) {
     // Move and project on the plane
-    if (this.mouseConstraint) {
+    if (this.pointerConstraint) {
       let pos = this.rayInput.renderer.reticle.position;
       if(pos){
         this.setClickMarker(pos.x,pos.y,pos.z,this.scene);
@@ -295,8 +344,8 @@ export default class MenuRenderer {
     this.clickMarker.visible = false;
   }
 
-  addMouseConstraint(x,y,z,body) {
-    // The cannon body constrained by the mouse joint
+  addPointerConstraint(x, y, z, body) {
+    // The cannon body constrained by the pointer joint
     this.constrainedBody = body;
 
     // Vector to the clicked point, relative to the body
@@ -311,49 +360,23 @@ export default class MenuRenderer {
 
     // Create a new constraint
     // The pivot for the jointBody is zero
-    this.mouseConstraint = new CANNON.PointToPointConstraint(this.constrainedBody, pivot, this.jointBody, new CANNON.Vec3(0,0,0));
+    this.pointerConstraint = new CANNON.PointToPointConstraint(this.constrainedBody, pivot, this.jointBody, new CANNON.Vec3(0,0,0));
 
-    // Add the constriant to world
-    this.world.addConstraint(this.mouseConstraint);
+    // Add the constraint to world
+    this.world.addConstraint(this.pointerConstraint);
   }
 
   // This function moves the transparent joint body to a new position in space
   moveJointToPoint(x,y,z) {
     // Move the joint body to a new position
     this.jointBody.position.set(x,y,z);
-    this.mouseConstraint.update();
+    this.pointerConstraint.update();
   }
 
   removeJointConstraint(){
     // Remove constraint from world
-    this.world.removeConstraint(this.mouseConstraint);
-    this.mouseConstraint = false;
+    this.world.removeConstraint(this.pointerConstraint);
+    this.pointerConstraint = false;
   }
 
-  createFloor_() {
-    var boxSize = 10;
-    var loader = new THREE.TextureLoader();
-    loader.load('img/box.png', onTextureLoaded);
-    var out = new THREE.Object3D();
-
-    function onTextureLoaded(texture) {
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(boxSize, boxSize);
-
-      var geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
-      var material = new THREE.MeshBasicMaterial({
-        map: texture,
-        color: 0x015500,
-        side: THREE.BackSide
-      });
-
-      // Align the skybox to the floor (which is at y=0).
-      let skybox = new THREE.Mesh(geometry, material);
-      skybox.position.y = boxSize/2;
-
-      out.add(skybox);
-    }
-    return out;
-  }
 }

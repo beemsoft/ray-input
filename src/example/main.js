@@ -26,6 +26,9 @@ function onLoad() {
   navigator.getVRDisplays().then(function(displays) {
     if (displays.length > 0) {
       vrDisplay = displays[0];
+
+      renderer.addCube();
+
       vrDisplay.requestAnimationFrame(render);
     }
   });
