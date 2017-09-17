@@ -17,3 +17,7 @@ Tested with Gear VR
     npm run build
     npm run start &
     http-server
+    
+## Screenshot
+![alt screenshot](https://github.com/beemsoft/webvr-physics/blob/master/img/com.oculus.vrshell.jpg)   
+    
