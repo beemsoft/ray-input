@@ -205,11 +205,13 @@ export default class RayInput extends EventEmitter {
   }
 
   onRayDrag_() {
+    this.renderer.setDragging(true);
     this.emit('raydrag');
   }
 
   onRayUp_(e) {
     //console.log('onRayUp_');
+    this.renderer.setDragging(false);
     let mesh = this.renderer.getSelectedMesh();
     this.emit('rayup', mesh);
 
@@ -218,6 +220,7 @@ export default class RayInput extends EventEmitter {
 
   onRayCancel_(e) {
     //console.log('onRayCancel_');
+    this.renderer.setDragging(false);
     let mesh = this.renderer.getSelectedMesh();
     this.emit('raycancel', mesh);
   }

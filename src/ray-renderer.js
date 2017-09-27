@@ -114,7 +114,7 @@ export default class RayRenderer extends EventEmitter {
       }
 
       // If it's no longer intersected, send rayout.
-      if (!isIntersected && isSelected) {
+      if (!isIntersected && isSelected && !this.isDragging) {
         delete this.selected[id];
         this.moveReticle_(null);
         if (this.isActive) {
@@ -228,6 +228,10 @@ export default class RayRenderer extends EventEmitter {
         this.emit('rayout', mesh);
       }
     }
+  }
+
+  setDragging(isDragging) {
+    this.isDragging = isDragging;
   }
 
   updateRaycaster_() {

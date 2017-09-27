@@ -20,9 +20,6 @@ const DEFAULT_COLOR = new THREE.Color(0x00FF00);
 const HIGHLIGHT_COLOR = new THREE.Color(0x1E90FF);
 const ACTIVE_COLOR = new THREE.Color(0xFF3333);
 
-/**
- * Renders a menu of items that can be interacted with.
- */
 export default class MenuRenderer {
 
   constructor() {
@@ -92,11 +89,11 @@ export default class MenuRenderer {
     let rayInput = new RayInput(camera);
     rayInput.setSize(renderer.getSize());
     rayInput.on('raydown', (opt_mesh) => { this.handleRayDown_(opt_mesh) });
-    rayInput.on('raydrag', (opt_mesh) => { this.handleRayDrag_() });
+    rayInput.on('raydrag', () => { this.handleRayDrag_() });
     rayInput.on('rayup', (opt_mesh) => { this.handleRayUp_(opt_mesh) });
     rayInput.on('raycancel', (opt_mesh) => { this.handleRayCancel_(opt_mesh) });
-    rayInput.on('rayover', (mesh) => { this.setSelected_(mesh, true) });
-    rayInput.on('rayout', (mesh) => { this.setSelected_(mesh, false) });
+    rayInput.on('rayover', (mesh) => { MenuRenderer.setSelected_(mesh, true) });
+    rayInput.on('rayout', (mesh) => { MenuRenderer.setSelected_(mesh, false) });
 
     // Add the ray input mesh to the scene.
     scene.add(rayInput.getMesh());
@@ -118,6 +115,7 @@ export default class MenuRenderer {
     this.pointerConstraint = pointerConstraint;
     this.jointBody = jointBody;
     this.axes = axes;
+    this.touchPadPosition = { x: 0, z: 0 };
 
     // lights
     let light;
@@ -150,25 +148,21 @@ export default class MenuRenderer {
     mesh.castShadow = true;
     mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI / 2);
     mesh.receiveShadow = true;
-    // mesh.position.y = -0.1;
     scene.add(mesh);
-
-    // cubes
-    let cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 10, 10 );
-    let cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x29ad83 } );
-    let cubeMesh;
-    for(let i=0; i<1; i++){
-      cubeMesh = new THREE.Mesh(cubeGeo, cubeMaterial);
-      cubeMesh.castShadow = true;
-      this.meshes.push(cubeMesh);
-      this.scene.add(cubeMesh);
-      rayInput.add(cubeMesh);
-    }
   }
 
   addCube() {
     let boxShape, boxBody;
     const mass = 5;
+    let cubeGeo = new THREE.BoxGeometry( 1, 1, 1, 10, 10 );
+    let cubeMaterial = new THREE.MeshPhongMaterial( { color: 0x29ad83 } );
+    let cubeMesh;
+    cubeMesh = new THREE.Mesh(cubeGeo, cubeMaterial);
+    cubeMesh.castShadow = true;
+    this.meshes.push(cubeMesh);
+    this.scene.add(cubeMesh);
+    this.rayInput.add(cubeMesh);
+
     boxShape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5));
     for(let i=0; i<1; i++){
       boxBody = new CANNON.Body({ mass: mass });
@@ -182,7 +176,7 @@ export default class MenuRenderer {
   updatePhysics() {
     this.world.step(this.dt);
     for (let i = 0; i !== this.meshes.length; i++) {
-      this.meshes[i].position.copy(this.bodies[i].position);
+        this.meshes[i].position.copy(this.bodies[i].position);
       this.meshes[i].quaternion.copy(this.bodies[i].quaternion);
     }
   }
@@ -194,8 +188,8 @@ export default class MenuRenderer {
     if (this.constraintDown) {
       //  Did any axes (assuming a 2D trackpad) values change?
 
-      let gamepad = this.getVRGamepad();
-      if (gamepad != null) {
+      let gamepad = MenuRenderer.getVRGamepad();
+      if (gamepad !== null) {
         if (gamepad.axes[0] && gamepad.axes[1]) {
 
 
@@ -215,7 +209,7 @@ export default class MenuRenderer {
             axesVal[0] = axisX;
             axesVal[1] = axisY;
             console.log('axes changed', axesVal);
-            // controller.dispatchEvent({ type: 'axes ' + i + ' changed', axes: axesVal });
+            this.rotateJoint(axisX, axisY);
           }
         }
       }
@@ -228,15 +222,15 @@ export default class MenuRenderer {
   /**
    * Gets the first VR-enabled gamepad.
    */
-  getVRGamepad() {
+  static getVRGamepad() {
     // If there's no gamepad API, there's no gamepad.
     if (!navigator.getGamepads) {
       return null;
     }
 
-    var gamepads = navigator.getGamepads();
-    for (var i = 0; i < gamepads.length; ++i) {
-      var gamepad = gamepads[i];
+    let gamepads = navigator.getGamepads();
+    for (let i = 0; i < gamepads.length; ++i) {
+      let gamepad = gamepads[i];
 
       // The array may contain undefined gamepads, so check for that as well as
       // a non-null pose.
@@ -259,9 +253,9 @@ export default class MenuRenderer {
     console.log('window.devicePixelRatio: ' + window.devicePixelRatio);
     console.log('window.innerWidth: ' + window.innerWidth);
     console.log('window.innerHeight: ' + window.innerHeight);
-    var DPR = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
-    var WW = window.innerWidth;
-    var HH = window.innerHeight;
+    const DPR = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
+    const WW = window.innerWidth;
+    const HH = window.innerHeight;
     this.renderer.setSize( WW, HH );
     this.renderer.setViewport( 0, 0, WW*DPR, HH*DPR );
     this.renderer.setPixelRatio(window.devicePixelRatio ? window.devicePixelRatio : 1);
@@ -269,7 +263,7 @@ export default class MenuRenderer {
   }
 
   handleRayDown_(opt_mesh) {
-    this.setAction_(opt_mesh, true);
+    MenuRenderer.setAction_(opt_mesh, true);
 
     let pos = this.rayInput.renderer.reticle.position;
     if(pos){
@@ -287,8 +281,7 @@ export default class MenuRenderer {
     }
   }
 
-  handleRayDrag_(opt_mesh) {
-    // Move and project on the plane
+  handleRayDrag_() {
     if (this.pointerConstraint) {
       let pos = this.rayInput.renderer.reticle.position;
       if(pos){
@@ -299,31 +292,28 @@ export default class MenuRenderer {
   }
 
   handleRayUp_(opt_mesh) {
-    this.setAction_(opt_mesh, false);
+    MenuRenderer.setAction_(opt_mesh, false);
 
     this.constraintDown = false;
     // remove the marker
     this.removeClickMarker();
 
-    // Send the remove mouse joint to server
     this.removeJointConstraint();
   }
 
   handleRayCancel_(opt_mesh) {
-    this.setAction_(opt_mesh, false);
+    MenuRenderer.setAction_(opt_mesh, false);
   }
 
-  setSelected_(mesh, isSelected) {
+  static setSelected_(mesh, isSelected) {
     //console.log('setSelected_', isSelected);
-    let newColor = isSelected ? HIGHLIGHT_COLOR : DEFAULT_COLOR;
-    mesh.material.color = newColor;
+    mesh.material.color = isSelected ? HIGHLIGHT_COLOR : DEFAULT_COLOR;
   }
 
-  setAction_(opt_mesh, isActive) {
+  static setAction_(opt_mesh, isActive) {
     //console.log('setAction_', !!opt_mesh, isActive);
     if (opt_mesh) {
-      let newColor = isActive ? ACTIVE_COLOR : HIGHLIGHT_COLOR;
-      opt_mesh.material.color = newColor;
+      opt_mesh.material.color = isActive ? ACTIVE_COLOR : HIGHLIGHT_COLOR;
       if (!isActive) {
         opt_mesh.material.wireframe = !opt_mesh.material.wireframe;
       }
@@ -373,10 +363,36 @@ export default class MenuRenderer {
     this.pointerConstraint.update();
   }
 
+  // Calculate rotation from two vectors on the touchpad
+  // https://stackoverflow.com/questions/40520129/three-js-rotate-object-using-mouse-and-orbit-control
+  // http://jsfiddle.net/x4mby38e/3/
+  rotateJoint(axisX, axisZ) {
+    if (this.touchPadPosition.x !== 0 || this.touchPadPosition.z !== 0) {
+      let deltaMove = { x: axisX - this.touchPadPosition.x, z: axisZ - this.touchPadPosition.z };
+      if (this.pointerConstraint) {
+      let deltaRotationQuaternion = new CANNON.Quaternion()
+        .setFromEuler(
+          MenuRenderer.toRadians(deltaMove.x),
+          0,
+          MenuRenderer.toRadians(deltaMove.z),
+          'XYZ'
+        );
+        this.constrainedBody.quaternion = new CANNON.Quaternion().mult(deltaRotationQuaternion, this.constrainedBody.quaternion);
+      }
+    }
+    this.touchPadPosition.x = axisX;
+    this.touchPadPosition.z = axisZ;
+  }
+
+  static toRadians(angle) {
+    return angle * (Math.PI / 180);
+  }
+
   removeJointConstraint(){
     // Remove constraint from world
     this.world.removeConstraint(this.pointerConstraint);
     this.pointerConstraint = false;
+    this.touchPadPosition = { x: 0, z: 0 };
   }
 
 }
