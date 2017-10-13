@@ -1,4 +1,3 @@
-import WebVRManager from 'webvr-boilerplate'
 import RayInput from '../ray-input'
 
 const DEFAULT_COLOR = new THREE.Color(0x00FF00);
@@ -7,7 +6,7 @@ const ACTIVE_COLOR = new THREE.Color(0xFF3333);
 
 export default class DemoRenderer {
 
-  constructor() {
+  constructor(size) {
     let world;
     const dt = 1 / 60;
     let constraintDown = false;
@@ -34,6 +33,7 @@ export default class DemoRenderer {
     let groundShape = new CANNON.Plane();
     let groundBody = new CANNON.Body({ mass: 0 });
     groundBody.addShape(groundShape);
+    groundBody.position.y -= 1;
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0),-Math.PI/2);
     world.addBody(groundBody);
 
@@ -52,27 +52,22 @@ export default class DemoRenderer {
     let camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 100);
     scene.add(camera);
 
-    let renderer = new THREE.WebGLRenderer({ antialias: true });
-    console.log('sizing');
-    console.log('window.devicePixelRatio: ' + window.devicePixelRatio);
-    console.log('window.innerWidth: ' + window.innerWidth);
-    console.log('window.innerHeight: ' + window.innerHeight);
-    renderer.setClearColor( scene.fog.color );
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.gammaInput = true;
-    renderer.gammaOutput = true;
-    renderer.shadowMapEnabled = true;
-
-    let effect = new THREE.VREffect(renderer);
-    let controls = new THREE.VRControls(camera);
-    controls.standing = true;
-
-    let manager = new WebVRManager(renderer, effect);
-    document.body.appendChild(renderer.domElement);
+    // let renderer = new THREE.WebGLRenderer({ antialias: true });
+    // console.log('sizing');
+    // console.log('window.devicePixelRatio: ' + window.devicePixelRatio);
+    // console.log('window.innerWidth: ' + window.innerWidth);
+    // console.log('window.innerHeight: ' + window.innerHeight);
+    // renderer.setClearColor( scene.fog.color );
+    // renderer.setSize(window.innerWidth, window.innerHeight);
+    // renderer.gammaInput = true;
+    // renderer.gammaOutput = true;
+    // renderer.shadowMap.enabled = true;
+    //
+    // document.body.appendChild(renderer.domElement);
 
     // Input manager.
     let rayInput = new RayInput(camera);
-    rayInput.setSize(renderer.getSize());
+    rayInput.setSize(size);
     rayInput.on('raydown', (opt_mesh) => { this.handleRayDown_(opt_mesh) });
     rayInput.on('raydrag', () => { this.handleRayDrag_() });
     rayInput.on('rayup', (opt_mesh) => { this.handleRayUp_(opt_mesh) });
@@ -82,14 +77,18 @@ export default class DemoRenderer {
 
     // Add the ray input mesh to the scene.
     scene.add(rayInput.getMesh());
+    // This helps move the camera
+    // let dolly = new THREE.Group();
+    // dolly.position.set( 0, 2, 0 );
+    // dolly.add( camera );
+    // dolly.add( rayInput.getMesh() );
+    // scene.add(dolly);
+    // camera.position.y +=2;
 
-    this.manager = manager;
     this.camera = camera;
     this.scene = scene;
-    this.controls = controls;
     this.rayInput = rayInput;
-    this.effect = effect;
-    this.renderer = renderer;
+    // this.renderer = renderer;
     this.world = world;
     this.dt = dt;
     this.meshes = meshes;
@@ -157,14 +156,15 @@ export default class DemoRenderer {
     this.markerMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
     //THREE.ColorUtils.adjustHSV( material.color, 0, 0, 0.9 );
     mesh = new THREE.Mesh( geometry, material );
-    mesh.castShadow = true;
+    // mesh.castShadow = true;
     mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0), -Math.PI / 2);
+    // mesh.position.set(0, -1, 0);
+    mesh.position.y -= 1;
     mesh.receiveShadow = true;
     scene.add(mesh);
   }
 
   addVisual(body) {
-    // var s = this.settings;
     // What geometry should be used?
     let mesh;
     if(body instanceof CANNON.Body){
@@ -172,11 +172,8 @@ export default class DemoRenderer {
     }
     if(mesh) {
       // Add body
+      mesh.castShadow = true;
       this.bodies.push(body);
-      // this.visuals.push(mesh);
-      // body.visualref = mesh;
-      // body.visualref.visualId = this.bodies.length - 1;
-      //mesh.useQuaternion = true;
       this.meshes.push(mesh);
       this.scene.add(mesh);
       this.rayInput.add(mesh);
@@ -421,7 +418,6 @@ export default class DemoRenderer {
   }
 
   render() {
-    this.controls.update();
     this.rayInput.update();
 
     if (this.constraintDown) {
@@ -455,7 +451,6 @@ export default class DemoRenderer {
     }
 
     this.updatePhysics();
-    this.effect.render(this.scene, this.camera);
   }
 
   /**
@@ -483,22 +478,6 @@ export default class DemoRenderer {
   filterAxis( v ) {
     this.axisThreshold = 0.2;
     return ( Math.abs( v ) > this.axisThreshold ) ? v : 0;
-  }
-
-  resize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-    console.log('Resizing');
-    console.log('window.devicePixelRatio: ' + window.devicePixelRatio);
-    console.log('window.innerWidth: ' + window.innerWidth);
-    console.log('window.innerHeight: ' + window.innerHeight);
-    const DPR = (window.devicePixelRatio) ? window.devicePixelRatio : 1;
-    const WW = window.innerWidth;
-    const HH = window.innerHeight;
-    this.renderer.setSize( WW, HH );
-    this.renderer.setViewport( 0, 0, WW*DPR, HH*DPR );
-    this.renderer.setPixelRatio(window.devicePixelRatio ? window.devicePixelRatio : 1);
-    this.rayInput.setSize(this.renderer.getSize());
   }
 
   handleRayDown_(opt_mesh) {
@@ -545,14 +524,12 @@ export default class DemoRenderer {
   }
 
   static setSelected_(mesh, isSelected) {
-    //console.log('setSelected_', isSelected);
     if (mesh.material) {
       mesh.material.color = isSelected ? HIGHLIGHT_COLOR : DEFAULT_COLOR;
     }
   }
 
   static setAction_(opt_mesh, isActive) {
-    //console.log('setAction_', !!opt_mesh, isActive);
     if (opt_mesh && opt_mesh.material) {
       opt_mesh.material.color = isActive ? ACTIVE_COLOR : HIGHLIGHT_COLOR;
       if (!isActive) {
