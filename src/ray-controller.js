@@ -108,7 +108,11 @@ export default class RayController extends EventEmitter {
 
   getGamepadPose() {
     let gamepad = this.getVRGamepad_();
-    return gamepad.pose;
+    if (gamepad !== null) {
+      return gamepad.pose;
+    } else {
+      return null;
+    }
   }
 
   /**
