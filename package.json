@@ -16,7 +16,7 @@
     "start-cube": "watchify -vdt [ babelify --presets [ es2015 ] ] src/cube/main.js src/cube/renderer.js -o build/cube.js",
     "start-cubes": "watchify -vdt [ babelify --presets [ es2015 ] ] src/cubes/main.js src/cubes/renderer.js -o build/cubes.js",
     "start-trimesh": "watchify -vdt [ babelify --presets [ es2015 ] ] src/trimesh/main.js src/trimesh/renderer.js -o build/trimesh.js",
-    "start-basketball": "watchify -vdt [ babelify --presets [ es2015 ] ] src/basketball/main.js src/basketball/renderer.js -o build/basketball.js",
+    "start-basketball": "watchify -vdt [ babelify --presets [ es2015 ] ] src/basketball/main.js -o build/basketball.js",
     "watch-simulator": "watchify -vdt [ babelify --presets [ es2015 ] ] src/simulator/main.js -o build/simulator.js"
   },
   "author": "Boris Smus, Hans Beemsterboer",
