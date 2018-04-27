@@ -40,7 +40,6 @@ function init() {
   cameraGroup.add( camera );
   cameraGroup.add( rayInput.getMesh() );
   scene.add(cameraGroup);
-  rayInput.setCameraGroup(cameraGroup);
 
   gamepad = new THREE.DaydreamController();
   gamepad.position.set( 0, 0, 0 );
