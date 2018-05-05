@@ -17,12 +17,14 @@
     "start-cubes": "watchify -vdt [ babelify --presets [ es2015 ] ] src/cubes/main.js src/cubes/renderer.js -o build/cubes.js",
     "start-trimesh": "watchify -vdt [ babelify --presets [ es2015 ] ] src/trimesh/main.js src/trimesh/renderer.js -o build/trimesh.js",
     "start-basketball": "watchify -vdt [ babelify --presets [ es2015 ] ] src/basketball/main.js -o build/basketball.js",
+    "start-hand": "watchify -vdt [ babelify --presets [ es2015 ] ] src/hand/main.js -o build/hand.js",
     "watch-simulator": "watchify -vdt [ babelify --presets [ es2015 ] ] src/simulator/main.js -o build/simulator.js"
   },
   "author": "Boris Smus, Hans Beemsterboer",
   "license": "Apache-2.0",
   "dependencies": {
     "eventemitter3": "^1.2.0",
+    "resonance-audio": "^1.0.0",
     "three": "^0.88.0",
     "webvr-boilerplate": "^0.4.6",
     "webvr-polyfill": "^0.9.15"

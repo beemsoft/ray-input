@@ -12,7 +12,7 @@ export default class RayHandler {
       // Set marker on contact point
       this.setClickMarker(pos.x,pos.y,pos.z,this.scene);
 
-      this.physicsHandler.addPointerConstraint(pos, opt_mesh);
+      this.physicsHandler.addPointerConstraintToMesh(pos, opt_mesh);
     }
   }
 
@@ -38,6 +38,7 @@ export default class RayHandler {
       const shape = new THREE.SphereGeometry(0.2, 8, 8);
       const markerMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
       this.clickMarker = new THREE.Mesh(shape, markerMaterial);
+      this.clickMarker.material.setWireframe(true);
       this.scene.add(this.clickMarker);
     }
     this.clickMarker.visible = true;

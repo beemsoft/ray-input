@@ -1161,7 +1161,7 @@ var DemoRenderer = function () {
 
         var idx = this.meshes.indexOf(opt_mesh);
         if (idx !== -1) {
-          this.addPointerConstraint(pos.x, pos.y, pos.z, this.bodies[idx]);
+          this.addPointerConstraintToMesh(pos.x, pos.y, pos.z, this.bodies[idx]);
         }
       }
     }
